@@ -4,7 +4,9 @@
 set -e
 
 DEFAULT_USER="philipp"
-DEFAULT_VIDEO="/home/philipp/Videos/myvideo.mp4"
+DEFAULT_VIDEO_DIR="/home/philipp/Videos"
+DEFAULT_VIDEO_FILE="/home/philipp/Videos/myvideo.mp4"
+DEFAULT_VIDEO_URL="https://raw.githubusercontent.com/d3vilh/60years.your.move/main/myvideo.mp4"
 
 ask_yes_no() {
     local prompt="$1"
@@ -25,15 +27,44 @@ read -rp "Enter Linux user [${DEFAULT_USER}]: " VIDEO_USER
 VIDEO_USER=${VIDEO_USER:-$DEFAULT_USER}
 
 echo
-read -rp "Enter full path to video file [${DEFAULT_VIDEO}]: " VIDEO_FILE
-VIDEO_FILE=${VIDEO_FILE:-$DEFAULT_VIDEO}
+read -rp "Enter video directory [${DEFAULT_VIDEO_DIR}]: " VIDEO_DIR
+VIDEO_DIR=${VIDEO_DIR:-$DEFAULT_VIDEO_DIR}
 
 echo
+read -rp "Enter full path to video file [${DEFAULT_VIDEO_FILE}]: " VIDEO_FILE
+VIDEO_FILE=${VIDEO_FILE:-$DEFAULT_VIDEO_FILE}
+
+echo
+read -rp "Enter video download URL [${DEFAULT_VIDEO_URL}]: " VIDEO_URL
+VIDEO_URL=${VIDEO_URL:-$DEFAULT_VIDEO_URL}
+
+echo
+
 echo "========== CONFIG =========="
-echo "User       : ${VIDEO_USER}"
-echo "Video file : ${VIDEO_FILE}"
+echo "User          : ${VIDEO_USER}"
+echo "Video dir     : ${VIDEO_DIR}"
+echo "Video file    : ${VIDEO_FILE}"
+echo "Download URL  : ${VIDEO_URL}"
 echo "============================"
 echo
+
+if ask_yes_no "Proceed with creating video directory?"; then
+    echo "[INFO] Creating video directory..."
+    mkdir -p "${VIDEO_DIR}"
+    chown -R "${VIDEO_USER}:${VIDEO_USER}" "${VIDEO_DIR}"
+fi
+
+if ask_yes_no "Proceed with downloading video from GitHub?"; then
+    echo "[INFO] Downloading video..."
+
+    apt update
+    apt install -y curl
+
+    curl -L "${VIDEO_URL}" -o "${VIDEO_FILE}"
+
+    chown "${VIDEO_USER}:${VIDEO_USER}" "${VIDEO_FILE}"
+    chmod 600 "${VIDEO_FILE}"
+fi
 
 if ask_yes_no "Proceed with removing X11/Desktop packages?"; then
     echo "[INFO] Removing X11/Desktop packages..."
@@ -105,8 +136,10 @@ if ask_yes_no "Proceed with enabling and starting video-kiosk service?"; then
 fi
 
 echo
+
 echo "[OK] Installation completed."
 echo
+
 echo "Useful commands:"
 echo "systemctl status video-kiosk.service"
 echo "journalctl -u video-kiosk.service -f"
