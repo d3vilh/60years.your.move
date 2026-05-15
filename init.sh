@@ -6,10 +6,12 @@ set -e
 DEFAULT_USER="philipp"
 DEFAULT_VIDEO_DIR="/home/philipp/Videos"
 DEFAULT_VIDEO_FILE="/home/philipp/Videos/myvideo.mp4"
-DEFAULT_VIDEO_URL="https://raw.githubusercontent.com/d3vilh/60years.your.move/main/myvideo.mp4"
+DEFAULT_GIT_REPO="https://github.com/d3vilh/60years.your.move.git"
+DEFAULT_GIT_VIDEO_PATH="video/myvideo.mp4"
 
 ask_yes_no() {
     local prompt="$1"
+
     read -rp "$prompt [Yes/no]: " answer
 
     case "${answer,,}" in
@@ -31,49 +33,85 @@ read -rp "Enter video directory [${DEFAULT_VIDEO_DIR}]: " VIDEO_DIR
 VIDEO_DIR=${VIDEO_DIR:-$DEFAULT_VIDEO_DIR}
 
 echo
-read -rp "Enter full path to video file [${DEFAULT_VIDEO_FILE}]: " VIDEO_FILE
+read -rp "Enter final full path to video file [${DEFAULT_VIDEO_FILE}]: " VIDEO_FILE
 VIDEO_FILE=${VIDEO_FILE:-$DEFAULT_VIDEO_FILE}
 
 echo
-read -rp "Enter video download URL [${DEFAULT_VIDEO_URL}]: " VIDEO_URL
-VIDEO_URL=${VIDEO_URL:-$DEFAULT_VIDEO_URL}
+read -rp "Enter Git repository URL [${DEFAULT_GIT_REPO}]: " GIT_REPO
+GIT_REPO=${GIT_REPO:-$DEFAULT_GIT_REPO}
 
 echo
+read -rp "Enter video path inside repository [${DEFAULT_GIT_VIDEO_PATH}]: " GIT_VIDEO_PATH
+GIT_VIDEO_PATH=${GIT_VIDEO_PATH:-$DEFAULT_GIT_VIDEO_PATH}
 
+echo
 echo "========== CONFIG =========="
-echo "User          : ${VIDEO_USER}"
-echo "Video dir     : ${VIDEO_DIR}"
-echo "Video file    : ${VIDEO_FILE}"
-echo "Download URL  : ${VIDEO_URL}"
+echo "User               : ${VIDEO_USER}"
+echo "Video dir          : ${VIDEO_DIR}"
+echo "Final video file   : ${VIDEO_FILE}"
+echo "Git repository     : ${GIT_REPO}"
+echo "Video inside repo  : ${GIT_VIDEO_PATH}"
 echo "============================"
 echo
 
 if ask_yes_no "Proceed with creating video directory?"; then
     echo "[INFO] Creating video directory..."
+
     mkdir -p "${VIDEO_DIR}"
+
     chown -R "${VIDEO_USER}:${VIDEO_USER}" "${VIDEO_DIR}"
 fi
 
-if ask_yes_no "Proceed with downloading video from GitHub?"; then
-    echo "[INFO] Downloading video..."
+if ask_yes_no "Proceed with downloading video from GitHub LFS repository?"; then
+    echo "[INFO] Installing git and git-lfs..."
 
     apt update
-    apt install -y curl
+    apt install -y git git-lfs
 
-    curl -L "${VIDEO_URL}" -o "${VIDEO_FILE}"
+    echo "[INFO] Initializing git-lfs..."
+
+    git lfs install
+
+    echo "[INFO] Removing old temporary repository..."
+
+    rm -rf /tmp/video-repo
+
+    echo "[INFO] Cloning repository..."
+
+    git clone "${GIT_REPO}" /tmp/video-repo
+
+    cd /tmp/video-repo
+
+    echo "[INFO] Downloading LFS objects..."
+
+    git lfs pull
+
+    echo "[INFO] Copying video file..."
+
+    cp "${GIT_VIDEO_PATH}" "${VIDEO_FILE}"
 
     chown "${VIDEO_USER}:${VIDEO_USER}" "${VIDEO_FILE}"
+
     chmod 600 "${VIDEO_FILE}"
+
+    echo "[INFO] Video downloaded successfully."
 fi
 
 if ask_yes_no "Proceed with removing X11/Desktop packages?"; then
     echo "[INFO] Removing X11/Desktop packages..."
-    apt remove --purge -y xserver-xorg xinit openbox lightdm 2>/dev/null || true
+
+    apt remove --purge -y \
+        xserver-xorg \
+        xinit \
+        openbox \
+        lightdm 2>/dev/null || true
+
     apt autoremove -y
 fi
 
 if ask_yes_no "Proceed with installing mpv?"; then
     echo "[INFO] Installing mpv..."
+
     apt update
     apt install -y mpv
 fi
@@ -95,6 +133,7 @@ fi
 
 if ask_yes_no "Proceed with adding user to video group?"; then
     echo "[INFO] Adding ${VIDEO_USER} to video group..."
+
     usermod -aG video "${VIDEO_USER}"
 fi
 
@@ -136,10 +175,8 @@ if ask_yes_no "Proceed with enabling and starting video-kiosk service?"; then
 fi
 
 echo
-
 echo "[OK] Installation completed."
 echo
-
 echo "Useful commands:"
 echo "systemctl status video-kiosk.service"
 echo "journalctl -u video-kiosk.service -f"
