@@ -5,9 +5,9 @@ set -e
 
 DEFAULT_USER="philipp"
 DEFAULT_VIDEO_DIR="/home/philipp/Videos"
-DEFAULT_VIDEO_FILE="/home/philipp/Videos/myvideo.mp4"
+DEFAULT_VIDEO_FILE="/home/philipp/Videos/myvideo2.mp4"
 DEFAULT_GIT_REPO="https://github.com/d3vilh/60years.your.move.git"
-DEFAULT_GIT_VIDEO_PATH="video/myvideo.mp4"
+DEFAULT_GIT_VIDEO_PATH="video/myvideo2.mp4"
 
 ask_yes_no() {
     local prompt="$1"
