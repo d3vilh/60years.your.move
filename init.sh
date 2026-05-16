@@ -148,15 +148,19 @@ After=multi-user.target
 [Service]
 User=${VIDEO_USER}
 Group=video
+Environment=HOME=/home/philipp
+WorkingDirectory=/home/philipp
 
 StandardInput=tty
-StandardOutput=tty
+StandardOutput=journal
+StandardError=journal
+TTYVHangup=no
+TTYVTDisallocate=no
 TTYPath=/dev/tty1
 TTYReset=yes
-TTYVHangup=yes
-TTYVTDisallocate=yes
 
-ExecStart=/bin/sh -c 'while true; do /usr/bin/mpv --fs --loop --keep-open=yes --vo=gpu --gpu-context=drm --hwdec=auto --no-osd-bar --really-quiet ${VIDEO_FILE}; sleep 1; done'
+#ExecStart=/bin/sh -c 'while true; do /usr/bin/mpv --fullscreen --no-audio --hwdec=no --profile=sw-fast --vo=gpu --gpu-context=drm --framedrop=vo --no-osd-bar --really-quiet /home/philipp/Videos/myvideo.mp4; sleep 1; done'
+ExecStart=/usr/bin/mpv --fullscreen --loop=inf --no-audio --hwdec=no --profile=sw-fast --vo=gpu --gpu-context=drm --framedrop=vo --no-osd-bar --really-quiet ${VIDEO_FILE}
 
 Restart=always
 RestartSec=2
